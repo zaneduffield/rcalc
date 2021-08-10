@@ -1,7 +1,9 @@
-use std::convert::{From, TryFrom};
+use std::convert::From;
 use std::iter::Peekable;
 
 use crate::lex;
+use lex::Token::*;
+use Operator::*;
 
 #[derive(Debug, PartialEq, Eq)]
 enum Operator {
@@ -13,22 +15,6 @@ enum Operator {
     Neg,
 }
 
-impl TryFrom<lex::Token> for Operator {
-    type Error = &'static str;
-
-    fn try_from(token: lex::Token) -> Result<Self, Self::Error> {
-        use Operator::*;
-        match token {
-            lex::Token::Plus => Ok(Add),
-            lex::Token::Dash => Ok(Sub),
-            lex::Token::Caret => Ok(Pow),
-            lex::Token::Slash => Ok(Div),
-            lex::Token::Star => Ok(Mul),
-            _ => Err("Can only convert operators"),
-        }
-    }
-}
-
 #[derive(Debug)]
 enum Expr {
     Unary(Operator, Box<Expr>),
@@ -36,22 +22,23 @@ enum Expr {
     Number(f64),
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum CalcErr {
     Lex(lex::LexErr),
-    Syntax(String),
+    Incomplete,
 }
 
 impl From<lex::LexErr> for CalcErr {
-    fn from(e: lex::LexErr) -> CalcErr {
+    fn from(e: lex::LexErr) -> Self {
         CalcErr::Lex(e)
     }
 }
 
+type ExprResult = Result<Expr, CalcErr>;
+
 impl Expr {
     fn eval(self) -> f64 {
         use Expr::*;
-        use Operator::*;
 
         match self {
             Expr::Number(x) => x,
@@ -65,116 +52,101 @@ impl Expr {
         }
     }
 
-    fn _parse_expression(input: &mut Peekable<lex::Lexer>) -> Result<Expr, CalcErr> {
-        use Expr::*;
-        use Operator::*;
-
-        let left = Expr::_parse_term(input)?;
-        match input.peek() {
-            None => Ok(left),
-            Some(result) => match &result.token {
-                Ok(lex::Token::Plus) => {
-                    input.next();
-                    Ok(Binary(
-                        Add,
-                        Box::new(left),
-                        Box::new(Expr::_parse_term(input)?),
-                    ))
-                }
-                Ok(lex::Token::Dash) => {
-                    input.next();
-                    Ok(Binary(
-                        Sub,
-                        Box::new(left),
-                        Box::new(Expr::_parse_term(input)?),
-                    ))
-                }
-                Ok(_) => Ok(left),
-                Err(e) => Err(CalcErr::from(e.clone())),
+    fn _parse(input: &mut Peekable<lex::Lexer>) -> ExprResult {
+        let expr = Expr::_parse_expression(input)?;
+        match input.next() {
+            None => Ok(expr),
+            Some(x) => match x? {
+                (pos, _) => Err(CalcErr::Lex((pos, format!("unexpected token")))),
             },
         }
     }
 
-    fn _parse_term(input: &mut Peekable<lex::Lexer>) -> Result<Expr, CalcErr> {
+    fn _parse_expression(input: &mut Peekable<lex::Lexer>) -> ExprResult {
         use Expr::*;
-        use Operator::*;
 
-        let left = Expr::_parse_factor(input)?;
-        match input.peek() {
-            None => Ok(left),
-            Some(result) => match &result.token {
-                Ok(lex::Token::Star) => {
-                    input.next();
-                    Ok(Binary(
-                        Mul,
-                        Box::new(left),
-                        Box::new(Expr::_parse_factor(input)?),
-                    ))
-                }
-                Ok(lex::Token::Slash) => {
-                    input.next();
-                    Ok(Binary(
-                        Div,
-                        Box::new(left),
-                        Box::new(Expr::_parse_factor(input)?),
-                    ))
-                }
-                Ok(_) => Ok(left),
-                Err(e) => Err(CalcErr::from(e.clone())),
-            },
+        let mut expr = Expr::_parse_term(input)?;
+        loop {
+            match input.peek() {
+                None => return Ok(expr),
+                Some(x) => match x {
+                    Ok((_, Plus)) => {
+                        input.next();
+                        expr = Binary(Add, Box::new(expr), Box::new(Expr::_parse_term(input)?))
+                    }
+                    Ok((_, Dash)) => {
+                        input.next();
+                        expr = Binary(Sub, Box::new(expr), Box::new(Expr::_parse_term(input)?))
+                    }
+                    _ => return Ok(expr),
+                },
+            }
         }
     }
 
-    fn _parse_factor(input: &mut Peekable<lex::Lexer>) -> Result<Expr, CalcErr> {
+    fn _parse_term(input: &mut Peekable<lex::Lexer>) -> ExprResult {
         use Expr::*;
-        use Operator::*;
 
-        let left = Expr::_parse_primary(input)?;
-        match input.peek() {
-            None => Ok(left),
-            Some(result) => match &result.token {
-                Ok(lex::Token::Caret) => {
-                    input.next();
-                    Ok(Binary(
-                        Pow,
-                        Box::new(left),
-                        Box::new(Expr::_parse_factor(input)?),
-                    ))
-                }
-                Ok(_) => Ok(left),
-                Err(e) => Err(CalcErr::from(e.clone())),
-            },
+        let mut expr = Expr::_parse_factor(input)?;
+        loop {
+            match input.peek() {
+                None => return Ok(expr),
+                Some(x) => match x {
+                    Ok((_, Star)) => {
+                        input.next();
+                        expr = Binary(Mul, Box::new(expr), Box::new(Expr::_parse_factor(input)?))
+                    }
+                    Ok((_, Slash)) => {
+                        input.next();
+                        expr = Binary(Div, Box::new(expr), Box::new(Expr::_parse_factor(input)?))
+                    }
+                    _ => return Ok(expr),
+                },
+            }
         }
     }
 
-    fn _parse_primary(input: &mut Peekable<lex::Lexer>) -> Result<Expr, CalcErr> {
+    fn _parse_factor(input: &mut Peekable<lex::Lexer>) -> ExprResult {
         use Expr::*;
-        use Operator::*;
+
+        let mut expr = Expr::_parse_primary(input)?;
+        loop {
+            match input.peek() {
+                None => return Ok(expr),
+                Some(x) => match x {
+                    Ok((_, Caret)) => {
+                        input.next();
+                        expr = Binary(Pow, Box::new(expr), Box::new(Expr::_parse_factor(input)?))
+                    }
+                    _ => return Ok(expr),
+                },
+            }
+        }
+    }
+
+    fn _parse_primary(input: &mut Peekable<lex::Lexer>) -> ExprResult {
+        use Expr::*;
 
         match input.next() {
-            None => Err(CalcErr::Syntax(format!("Expected more!"))),
-            Some(result) => match result.token {
-                Ok(lex::Token::Number(n)) => Ok(Expr::Number(n)),
-                Ok(lex::Token::LParen) => {
+            None => Err(CalcErr::Incomplete),
+            Some(x) => match x? {
+                (_, lex::Token::Number(n)) => Ok(Expr::Number(n)),
+                (_, LParen) => {
                     let expr = Expr::_parse_expression(input)?;
-                    if let Some(lex::LexResult {
-                        pos: _,
-                        token: Ok(lex::Token::RParen),
-                    }) = input.next()
-                    {
+                    if let Some(Ok((_, RParen))) = input.next() {
                         Ok(expr)
                     } else {
-                        Err(CalcErr::Syntax(format!("Expected closing parenthesis")))
+                        Err(CalcErr::Incomplete)
                     }
                 }
-                Ok(lex::Token::Dash) => Ok(Unary(Neg, Box::new(Expr::_parse_term(input)?))),
-                _ => Err(CalcErr::Syntax(format!("Unexpected token"))),
+                (_, Dash) => Ok(Unary(Neg, Box::new(Expr::_parse_term(input)?))),
+                (pos, _) => Err(CalcErr::Lex((pos, format!("not expected here")))),
             },
         }
     }
 
-    fn parse(input: &str) -> Result<Expr, CalcErr> {
-        Expr::_parse_expression(&mut lex::Lexer::new(input).peekable())
+    fn parse(input: &str) -> ExprResult {
+        Expr::_parse(&mut lex::Lexer::new(input).peekable())
     }
 }
 
@@ -204,7 +176,7 @@ pub mod test {
     }
 
     #[test]
-    pub fn test_po() {
+    pub fn test_pow() {
         assert_eq!(25.0, eval("5^2").unwrap());
         assert_eq!(3.0, eval("9^0.5").unwrap());
     }
@@ -212,6 +184,11 @@ pub mod test {
     #[test]
     pub fn test_double_neg() {
         assert_eq!(2.0, eval("1--1").unwrap());
+    }
+
+    #[test]
+    pub fn test_chained_add() {
+        assert_eq!(3.0, eval("1+1+1").unwrap());
     }
 
     #[test]
@@ -248,5 +225,13 @@ pub mod test {
     pub fn test_paren() {
         assert_eq!(12.0, eval("2 * (5 + 1)").unwrap());
         assert_eq!(11.0, eval("(2 * 5) + 1").unwrap());
+    }
+
+    #[test]
+    pub fn test_incomplete() {
+        assert_eq!(Err(CalcErr::Incomplete), eval("2 * "));
+        assert_eq!(Err(CalcErr::Incomplete), eval("2 * ("));
+        assert_eq!(Err(CalcErr::Incomplete), eval("2 * (5+2"));
+        assert_eq!(Ok(14.0), eval("2 * (5+2)"));
     }
 }

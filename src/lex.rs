@@ -15,21 +15,16 @@ pub enum Token {
 }
 
 pub type TokenPosition = usize;
+pub type LexResult = Result<(TokenPosition, Token), LexErr>;
+pub type LexErr = (TokenPosition, String);
 
-pub struct LexResult {
-    pub pos: TokenPosition,
-    pub token: Result<Token, LexErr>,
-}
-
-#[derive(Debug, Clone)]
-pub struct LexErr(String);
-
-fn read_num(c: char, iter: &mut Peekable<Enumerate<impl Iterator<Item = char>>>) -> LexResult {
-    let mut num = c.to_string();
+fn read_num(iter: &mut Peekable<Enumerate<impl Iterator<Item = char>>>) -> LexResult {
+    let mut num = String::new();
     let mut found_dot = false;
 
-    let i = 0;
-    while let Some((_, c)) = iter.peek() {
+    let mut pos = 0;
+    while let Some((i, c)) = iter.peek() {
+        pos = *i;
         if *c == '.' {
             if found_dot {
                 break;
@@ -45,23 +40,19 @@ fn read_num(c: char, iter: &mut Peekable<Enumerate<impl Iterator<Item = char>>>)
         }
     }
     match num.parse() {
-        Ok(n) => LexResult {
-            pos: i,
-            token: Ok(Token::Number(n)),
-        },
-        Err(_) => LexResult {
-            pos: i,
-            token: Err(LexErr("Expected number".to_string())),
-        },
+        Ok(n) => Ok((pos, Token::Number(n))),
+        Err(_) => Err((pos, "unknown symbol".to_string())),
     }
 }
 
 fn next_token(iter: &mut Peekable<Enumerate<impl Iterator<Item = char>>>) -> LexResult {
     use Token::*;
 
-    let i = 0;
-    while let Some((i, c)) = iter.next() {
+    let mut pos = 0;
+    while let Some((i, c)) = iter.peek() {
+        pos = *i;
         if c.is_whitespace() {
+            iter.next();
             continue;
         } else {
             let token = match c {
@@ -72,20 +63,13 @@ fn next_token(iter: &mut Peekable<Enumerate<impl Iterator<Item = char>>>) -> Lex
                 '*' => Star,
                 '/' => Slash,
                 '^' => Caret,
-                _ => {
-                    return read_num(c, iter);
-                }
+                _ => return read_num(iter),
             };
-            return LexResult {
-                pos: i,
-                token: Ok(token),
-            };
+            iter.next();
+            return Ok((pos, token));
         }
     }
-    return LexResult {
-        pos: i,
-        token: Ok(End),
-    };
+    return Ok((pos, End));
 }
 
 pub struct Lexer<'a> {
@@ -104,10 +88,7 @@ impl<'a> Iterator for Lexer<'a> {
     type Item = LexResult;
     fn next(&mut self) -> Option<Self::Item> {
         match next_token(&mut self.chars) {
-            LexResult {
-                pos: _,
-                token: Ok(Token::End),
-            } => None,
+            Ok((_, Token::End)) => None,
             x => Some(x),
         }
     }
