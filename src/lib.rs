@@ -9,12 +9,17 @@ mod parse;
 
 pub fn run() {
     let mut prompt = ColouredStr::new(">>> ");
+    let mut overflow_prompt = ColouredStr::new("....");
     let prompt_len = prompt.string.len();
+
     prompt.yellow();
+    overflow_prompt.yellow();
+    let overflow_prompt = overflow_prompt.coloured_string;
+    let prompt = prompt.coloured_string;
 
     loop {
         let mut input = String::new();
-        print!("{}", prompt.coloured_string);
+        print!("{}", prompt);
         io::stdout().flush().unwrap();
 
         loop {
@@ -34,7 +39,7 @@ pub fn run() {
                     break;
                 }
                 Err(parse::CalcErr::Incomplete) => {
-                    print!("{}", ".".repeat(prompt_len));
+                    print!("{} ", overflow_prompt);
                     io::stdout().flush().unwrap();
                 }
             };
