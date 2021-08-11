@@ -14,9 +14,11 @@ pub enum Token {
     End,
 }
 
+pub const UNKNOWN_SYMBOL: &str = "unknown symbol";
+
 pub type TokenPosition = usize;
+pub type LexErr = (TokenPosition, &'static str);
 pub type LexResult = Result<(TokenPosition, Token), LexErr>;
-pub type LexErr = (TokenPosition, String);
 
 fn read_num(iter: &mut Peekable<Enumerate<impl Iterator<Item = char>>>) -> LexResult {
     let mut num = String::new();
@@ -41,7 +43,7 @@ fn read_num(iter: &mut Peekable<Enumerate<impl Iterator<Item = char>>>) -> LexRe
     }
     match num.parse() {
         Ok(n) => Ok((pos, Token::Number(n))),
-        Err(_) => Err((pos, "unknown symbol".to_string())),
+        Err(_) => Err((pos, UNKNOWN_SYMBOL)),
     }
 }
 

@@ -22,6 +22,8 @@ enum Expr {
     Number(f64),
 }
 
+const UNEXPECTED_TOKEN: &str = "not expected here";
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum CalcErr {
     Lex(lex::LexErr),
@@ -57,7 +59,7 @@ impl Expr {
         match input.next() {
             None => Ok(expr),
             Some(x) => match x? {
-                (pos, _) => Err(CalcErr::Lex((pos, format!("unexpected token")))),
+                (pos, _) => Err(CalcErr::Lex((pos, UNEXPECTED_TOKEN))),
             },
         }
     }
@@ -133,18 +135,18 @@ impl Expr {
                 (_, lex::Token::Number(n)) => Ok(Expr::Number(n)),
                 (_, LParen) => Expr::_parse_paren(input),
                 (_, Dash) => Ok(Unary(Neg, Box::new(Expr::_parse_term(input)?))),
-                (pos, _) => Err(CalcErr::Lex((pos, "unexpected here".to_string()))),
+                (pos, _) => Err(CalcErr::Lex((pos, UNEXPECTED_TOKEN))),
             },
         }
     }
 
     fn _parse_paren(input: &mut Peekable<lex::Lexer>) -> ExprResult {
-                    let expr = Expr::_parse_expression(input)?;
+        let expr = Expr::_parse_expression(input)?;
         if let Some(x) = input.next() {
             if let (_, RParen) = x? {
                 return Ok(expr)
-                    }
-                }
+            }
+        }
         Err(CalcErr::Incomplete)
     }
 
@@ -240,7 +242,7 @@ pub mod test {
 
     #[test]
     pub fn test_unknown_symbol() {
-        assert_eq!(Err(CalcErr::Lex((4, "unknown symbol".to_string()))), eval("2 * &"));
-        assert_eq!(Err(CalcErr::Lex((6, "unknown symbol".to_string()))), eval("2 * (1a"));
+        assert_eq!(Err(CalcErr::Lex((4, lex::UNKNOWN_SYMBOL))), eval("2 * &"));
+        assert_eq!(Err(CalcErr::Lex((6, lex::UNKNOWN_SYMBOL))), eval("2 * (1a"));
     }
 }
