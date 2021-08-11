@@ -233,6 +233,13 @@ pub mod test {
     }
 
     #[test]
+    pub fn test_unexpected_token() {
+        assert_eq!(Err(CalcErr::Lex((7, UNEXPECTED_TOKEN))), eval("1 - 5 */ 5"));
+        assert_eq!(Err(CalcErr::Lex((1, UNEXPECTED_TOKEN))), eval("2()"));
+        assert_eq!(Err(CalcErr::Lex((3, UNEXPECTED_TOKEN))), eval("2*()"));
+    }
+
+    #[test]
     pub fn test_incomplete() {
         assert_eq!(Err(CalcErr::Incomplete), eval("2 * "));
         assert_eq!(Err(CalcErr::Incomplete), eval("2 * ("));
