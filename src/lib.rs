@@ -19,6 +19,11 @@ pub fn run() {
 
         loop {
             io::stdin().read_line(&mut input).unwrap();
+            if input.is_empty() {
+                return;
+            } else if input.trim().is_empty() {
+                break;
+            }
             match parse::eval(&input) {
                 Ok(val) => {
                     println!("{}", val);
