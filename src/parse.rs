@@ -131,18 +131,21 @@ impl Expr {
             None => Err(CalcErr::Incomplete),
             Some(x) => match x? {
                 (_, lex::Token::Number(n)) => Ok(Expr::Number(n)),
-                (_, LParen) => {
-                    let expr = Expr::_parse_expression(input)?;
-                    if let Some(Ok((_, RParen))) = input.next() {
-                        Ok(expr)
-                    } else {
-                        Err(CalcErr::Incomplete)
-                    }
-                }
+                (_, LParen) => Expr::_parse_paren(input),
                 (_, Dash) => Ok(Unary(Neg, Box::new(Expr::_parse_term(input)?))),
-                (pos, _) => Err(CalcErr::Lex((pos, format!("not expected here")))),
+                (pos, _) => Err(CalcErr::Lex((pos, "unexpected here".to_string()))),
             },
         }
+    }
+
+    fn _parse_paren(input: &mut Peekable<lex::Lexer>) -> ExprResult {
+                    let expr = Expr::_parse_expression(input)?;
+        if let Some(x) = input.next() {
+            if let (_, RParen) = x? {
+                return Ok(expr)
+                    }
+                }
+        Err(CalcErr::Incomplete)
     }
 
     fn parse(input: &str) -> ExprResult {
@@ -233,5 +236,11 @@ pub mod test {
         assert_eq!(Err(CalcErr::Incomplete), eval("2 * ("));
         assert_eq!(Err(CalcErr::Incomplete), eval("2 * (5+2"));
         assert_eq!(Ok(14.0), eval("2 * (5+2)"));
+    }
+
+    #[test]
+    pub fn test_unknown_symbol() {
+        assert_eq!(Err(CalcErr::Lex((4, "unknown symbol".to_string()))), eval("2 * &"));
+        assert_eq!(Err(CalcErr::Lex((6, "unknown symbol".to_string()))), eval("2 * (1a"));
     }
 }
