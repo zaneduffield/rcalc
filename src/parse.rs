@@ -61,7 +61,7 @@ impl Expr {
             Some(x) => {
                 let (pos, _) = x?;
                 Err(CalcErr::Lex((pos, UNEXPECTED_TOKEN)))
-            },
+            }
         }
     }
 
@@ -143,7 +143,7 @@ impl Expr {
         let expr = Expr::_parse_expression(input)?;
         if let Some(x) = input.next() {
             if let (_, RParen) = x? {
-                return Ok(expr)
+                return Ok(expr);
             }
         }
         Err(CalcErr::Incomplete)

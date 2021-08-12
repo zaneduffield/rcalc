@@ -1,6 +1,6 @@
-use rustyline::error::ReadlineError::{Interrupted, Eof};
-use rustyline::Editor;
 use ansi_colors::*;
+use rustyline::error::ReadlineError::{Eof, Interrupted};
+use rustyline::Editor;
 
 mod lex;
 mod parse;
@@ -37,7 +37,7 @@ pub fn run() {
                             rl.add_history_entry(input);
                             break;
                         }
-                        Err(parse::CalcErr::Incomplete) => {prompt = &overflow_prompt},
+                        Err(parse::CalcErr::Incomplete) => prompt = &overflow_prompt,
                     };
                 }
             }
