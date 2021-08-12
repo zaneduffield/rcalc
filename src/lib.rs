@@ -7,7 +7,7 @@ mod parse;
 
 pub fn run() {
     let mut coloured_prompt = ColouredStr::new(">>> ");
-    let mut overflow_prompt = ColouredStr::new("....");
+    let mut overflow_prompt = ColouredStr::new("... ");
 
     coloured_prompt.yellow();
     overflow_prompt.yellow();

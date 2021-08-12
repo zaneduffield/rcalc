@@ -12,7 +12,7 @@ You can evaluate math expressions using + - * / ^ ()
 where incomplete expressions will flow onto subsequent lines
 ```
 >>> 4 * 
-....5 + 2
+... 5 + 2
 22
 ```
 
