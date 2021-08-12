@@ -7,3 +7,4 @@ edition = "2018"
 
 [dependencies]
 ansi-colors = "0.3.0"
+rustyline = "8.2.0"
