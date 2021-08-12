@@ -19,7 +19,7 @@ enum Operator {
 enum Expr {
     Unary(Operator, Box<Expr>),
     Binary(Operator, Box<Expr>, Box<Expr>),
-    Number(f64),
+    Num(f64),
 }
 
 const UNEXPECTED_TOKEN: &str = "not expected here";
@@ -43,7 +43,7 @@ impl Expr {
         use Expr::*;
 
         match self {
-            Expr::Number(x) => x,
+            Num(x) => x,
             Unary(Neg, x) => -x.eval(),
             Binary(Add, x, y) => x.eval() + y.eval(),
             Binary(Sub, x, y) | Binary(Neg, x, y) => x.eval() - y.eval(),
@@ -53,9 +53,15 @@ impl Expr {
             Unary(_, x) => x.eval(),
         }
     }
+}
 
-    fn _parse(input: &mut Peekable<lex::Lexer>) -> ExprResult {
-        let expr = Expr::_parse_expression(input)?;
+mod recursive_descent_parse {
+    use super::*;
+    use Expr::*;
+    type Lexer<'a> = Peekable<lex::Lexer<'a>>;
+
+    fn parse_complete_expr(input: &mut Lexer) -> ExprResult {
+        let expr = parse_expr(input)?;
         match input.next() {
             None => Ok(expr),
             Some(x) => {
@@ -65,21 +71,19 @@ impl Expr {
         }
     }
 
-    fn _parse_expression(input: &mut Peekable<lex::Lexer>) -> ExprResult {
-        use Expr::*;
-
-        let mut expr = Expr::_parse_term(input)?;
+    fn parse_expr(input: &mut Lexer) -> ExprResult {
+        let mut expr = parse_term(input)?;
         loop {
             match input.peek() {
                 None => return Ok(expr),
                 Some(x) => match x {
                     Ok((_, Plus)) => {
                         input.next();
-                        expr = Binary(Add, Box::new(expr), Box::new(Expr::_parse_term(input)?))
+                        expr = Binary(Add, Box::new(expr), Box::new(parse_term(input)?))
                     }
                     Ok((_, Dash)) => {
                         input.next();
-                        expr = Binary(Sub, Box::new(expr), Box::new(Expr::_parse_term(input)?))
+                        expr = Binary(Sub, Box::new(expr), Box::new(parse_term(input)?))
                     }
                     _ => return Ok(expr),
                 },
@@ -87,21 +91,19 @@ impl Expr {
         }
     }
 
-    fn _parse_term(input: &mut Peekable<lex::Lexer>) -> ExprResult {
-        use Expr::*;
-
-        let mut expr = Expr::_parse_factor(input)?;
+    fn parse_term(input: &mut Lexer) -> ExprResult {
+        let mut expr = parse_factor(input)?;
         loop {
             match input.peek() {
                 None => return Ok(expr),
                 Some(x) => match x {
                     Ok((_, Star)) => {
                         input.next();
-                        expr = Binary(Mul, Box::new(expr), Box::new(Expr::_parse_factor(input)?))
+                        expr = Binary(Mul, Box::new(expr), Box::new(parse_factor(input)?))
                     }
                     Ok((_, Slash)) => {
                         input.next();
-                        expr = Binary(Div, Box::new(expr), Box::new(Expr::_parse_factor(input)?))
+                        expr = Binary(Div, Box::new(expr), Box::new(parse_factor(input)?))
                     }
                     _ => return Ok(expr),
                 },
@@ -109,38 +111,34 @@ impl Expr {
         }
     }
 
-    fn _parse_factor(input: &mut Peekable<lex::Lexer>) -> ExprResult {
-        use Expr::*;
-
-        let mut expr = Expr::_parse_primary(input)?;
+    fn parse_factor(input: &mut Lexer) -> ExprResult {
+        let mut expr = parse_primary(input)?;
         loop {
             match input.peek() {
                 None => return Ok(expr),
                 Some(Ok((_, Caret))) => {
                     input.next();
-                    expr = Binary(Pow, Box::new(expr), Box::new(Expr::_parse_factor(input)?))
+                    expr = Binary(Pow, Box::new(expr), Box::new(parse_factor(input)?))
                 }
                 _ => return Ok(expr),
             }
         }
     }
 
-    fn _parse_primary(input: &mut Peekable<lex::Lexer>) -> ExprResult {
-        use Expr::*;
-
+    fn parse_primary(input: &mut Lexer) -> ExprResult {
         match input.next() {
             None => Err(CalcErr::Incomplete),
             Some(x) => match x? {
-                (_, lex::Token::Number(n)) => Ok(Expr::Number(n)),
-                (_, LParen) => Expr::_parse_paren(input),
-                (_, Dash) => Ok(Unary(Neg, Box::new(Expr::_parse_factor(input)?))),
+                (_, Number(n)) => Ok(Num(n)),
+                (_, LParen) => parse_parenthesised(input),
+                (_, Dash) => Ok(Unary(Neg, Box::new(parse_factor(input)?))),
                 (pos, _) => Err(CalcErr::Lex((pos, UNEXPECTED_TOKEN))),
             },
         }
     }
 
-    fn _parse_paren(input: &mut Peekable<lex::Lexer>) -> ExprResult {
-        let expr = Expr::_parse_expression(input)?;
+    fn parse_parenthesised(input: &mut Lexer) -> ExprResult {
+        let expr = parse_expr(input)?;
         if let Some(x) = input.next() {
             if let (_, RParen) = x? {
                 return Ok(expr);
@@ -149,13 +147,13 @@ impl Expr {
         Err(CalcErr::Incomplete)
     }
 
-    fn parse(input: &str) -> ExprResult {
-        Expr::_parse(&mut lex::Lexer::new(input).peekable())
+    pub(super) fn parse(input: &str) -> ExprResult {
+        parse_complete_expr(&mut lex::Lexer::new(input).peekable())
     }
 }
 
 pub fn eval(input: &str) -> Result<f64, CalcErr> {
-    Ok(Expr::parse(input)?.eval())
+    Ok(recursive_descent_parse::parse(input)?.eval())
 }
 
 #[cfg(test)]
