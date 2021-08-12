@@ -133,7 +133,7 @@ impl Expr {
             Some(x) => match x? {
                 (_, lex::Token::Number(n)) => Ok(Expr::Number(n)),
                 (_, LParen) => Expr::_parse_paren(input),
-                (_, Dash) => Ok(Unary(Neg, Box::new(Expr::_parse_term(input)?))),
+                (_, Dash) => Ok(Unary(Neg, Box::new(Expr::_parse_factor(input)?))),
                 (pos, _) => Err(CalcErr::Lex((pos, UNEXPECTED_TOKEN))),
             },
         }
