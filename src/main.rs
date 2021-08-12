@@ -1,4 +1,4 @@
 fn main() {
-    println!("Evaluate math expressions using + - * / ^ ()");
+    println!("\nWelcome to rcalc!\nYou can evaluate math expressions using + - * / ^ ()\n");
     rcalc::run();
 }
