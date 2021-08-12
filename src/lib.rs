@@ -58,13 +58,11 @@ fn print_error_message(input: &str, prompt_len: usize, e: lex::LexErr) {
     }
     println!("{:pad$}{}", "", format_error_message(e), pad = prompt_len);
 }
+
 fn format_error_message(err: lex::LexErr) -> String {
-    match err {
-        (pos, msg) => {
-            let x = format!("{:pad$}^ ", "", pad = pos);
-            let mut pointer = ColouredStr::new(&x);
-            pointer.red();
-            pointer.coloured_string + &msg
-        }
-    }
+    let (pos, msg) = err;
+    let x = format!("{:pad$}^ ", "", pad = pos);
+    let mut pointer = ColouredStr::new(&x);
+    pointer.red();
+    pointer.coloured_string + msg
 }

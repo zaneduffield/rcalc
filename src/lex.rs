@@ -71,7 +71,7 @@ fn next_token(iter: &mut Peekable<Enumerate<impl Iterator<Item = char>>>) -> Lex
             return Ok((pos, token));
         }
     }
-    return Ok((pos, End));
+    Ok((pos, End))
 }
 
 pub struct Lexer<'a> {

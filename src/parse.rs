@@ -58,8 +58,9 @@ impl Expr {
         let expr = Expr::_parse_expression(input)?;
         match input.next() {
             None => Ok(expr),
-            Some(x) => match x? {
-                (pos, _) => Err(CalcErr::Lex((pos, UNEXPECTED_TOKEN))),
+            Some(x) => {
+                let (pos, _) = x?;
+                Err(CalcErr::Lex((pos, UNEXPECTED_TOKEN)))
             },
         }
     }
@@ -115,13 +116,11 @@ impl Expr {
         loop {
             match input.peek() {
                 None => return Ok(expr),
-                Some(x) => match x {
-                    Ok((_, Caret)) => {
-                        input.next();
-                        expr = Binary(Pow, Box::new(expr), Box::new(Expr::_parse_factor(input)?))
-                    }
-                    _ => return Ok(expr),
-                },
+                Some(Ok((_, Caret))) => {
+                    input.next();
+                    expr = Binary(Pow, Box::new(expr), Box::new(Expr::_parse_factor(input)?))
+                }
+                _ => return Ok(expr),
             }
         }
     }
