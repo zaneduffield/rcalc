@@ -167,96 +167,96 @@ pub mod test {
     use super::*;
 
     #[test]
-    pub fn test_num_num() {
+    pub fn num_is_parsed() {
         assert_eq!(1.0, eval("1.0").unwrap());
     }
+
     #[test]
-    pub fn test_mul() {
+    pub fn mul() {
         assert_eq!(15.0, eval("3 * 5").unwrap());
     }
+
     #[test]
-    pub fn test_mod() {
+    pub fn modulus() {
         assert_eq!(1.0, eval("1 % 2").unwrap());
         assert_eq!(0.0, eval("4 % 2").unwrap());
         assert_eq!(2.0, eval("8 % 3").unwrap());
         assert_eq!(4.0, eval("11 % 7").unwrap());
         assert_eq!(2.0, eval("8 % 3").unwrap());
     }
+
     #[test]
-    pub fn test_add() {
+    pub fn add() {
         assert_eq!(9.0, eval("2 + 7").unwrap());
     }
+
     #[test]
-    pub fn test_sub() {
+    pub fn sub() {
         assert_eq!(10.0, eval("11 - 1").unwrap());
     }
 
     #[test]
-    pub fn test_pow() {
+    pub fn pow() {
         assert_eq!(25.0, eval("5^2").unwrap());
         assert_eq!(3.0, eval("9^0.5").unwrap());
     }
 
     #[test]
-    pub fn test_double_neg() {
+    pub fn double_neg() {
         assert_eq!(2.0, eval("1--1").unwrap());
     }
 
     #[test]
-    pub fn test_chained_add() {
+    pub fn chained_add() {
         assert_eq!(3.0, eval("1+1+1").unwrap());
     }
 
     #[test]
-    pub fn test_right_add() {
-        assert_eq!(1.5, eval("(1+0.25)+0.25").unwrap());
+    pub fn paren_before_add() {
+        assert_eq!(0.3125, eval("(1+0.25)*0.25").unwrap());
+        assert_eq!(0.66, eval("1.2*(0.3+0.25)").unwrap());
     }
 
     #[test]
-    pub fn test_left_add() {
-        assert_eq!(1.5, eval("1+(0.25+0.25)").unwrap());
+    pub fn paren_before_mul() {
+        assert_eq!(12.0, eval("2 * (5 + 1)").unwrap());
+        assert_eq!(11.0, eval("(2 * 5) + 1").unwrap());
     }
 
     #[test]
-    pub fn test_mul_before_add() {
+    pub fn mul_before_add() {
         assert_eq!(14.0, eval("4 * 3 + 2").unwrap());
         assert_eq!(14.0, eval("2 + 4 * 3").unwrap());
     }
 
     #[test]
-    pub fn test_neg_before_add() {
+    pub fn neg_before_add() {
         assert_eq!(0.0, eval("-5 + 5").unwrap());
         assert_eq!(-10.0, eval("-(5 + 5)").unwrap());
     }
 
     #[test]
-    pub fn test_pow_before_all() {
+    pub fn pow_before_all() {
         assert_eq!(-25.0, eval("-5^2").unwrap());
         assert_eq!(37.0, eval("6^2+1").unwrap());
         assert_eq!(200.0, eval("2*10^2").unwrap());
         assert_eq!(2.0, eval("2^2/2").unwrap());
     }
     #[test]
-    pub fn test_left_associative() {
+    pub fn is_left_associative() {
         assert_eq!(1.0, eval("5 * 2 % 3").unwrap());
         assert_eq!(9.0, eval("6 / 2 * 3").unwrap())
     }
 
     #[test]
-    pub fn test_paren() {
-        assert_eq!(12.0, eval("2 * (5 + 1)").unwrap());
-        assert_eq!(11.0, eval("(2 * 5) + 1").unwrap());
-    }
-
-    #[test]
-    pub fn test_unexpected_token() {
+    pub fn unexpected_token_is_rejected() {
         assert_eq!(Err(CalcErr::Lex((7, UNEXPECTED_TOKEN))), eval("1 - 5 */ 5"));
         assert_eq!(Err(CalcErr::Lex((1, UNEXPECTED_TOKEN))), eval("2()"));
         assert_eq!(Err(CalcErr::Lex((3, UNEXPECTED_TOKEN))), eval("2*()"));
     }
 
     #[test]
-    pub fn test_incomplete() {
+    pub fn incomplete_expr_is_identified() {
         assert_eq!(Err(CalcErr::Incomplete), eval("2 * "));
         assert_eq!(Err(CalcErr::Incomplete), eval("2 * ("));
         assert_eq!(Err(CalcErr::Incomplete), eval("2 * (5+2"));
@@ -264,7 +264,7 @@ pub mod test {
     }
 
     #[test]
-    pub fn test_unknown_symbol() {
+    pub fn unknown_symbol_is_rejected() {
         assert_eq!(Err(CalcErr::Lex((4, lex::UNKNOWN_SYMBOL))), eval("2 * &"));
         assert_eq!(Err(CalcErr::Lex((6, lex::UNKNOWN_SYMBOL))), eval("2 * (1a"));
     }
