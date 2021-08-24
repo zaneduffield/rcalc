@@ -11,6 +11,7 @@ enum Operator {
     Sub,
     Mul,
     Div,
+    Mod,
     Pow,
     Neg,
 }
@@ -49,6 +50,7 @@ impl Expr {
             Binary(Sub, x, y) | Binary(Neg, x, y) => x.eval() - y.eval(),
             Binary(Mul, x, y) => x.eval() * y.eval(),
             Binary(Div, x, y) => x.eval() / y.eval(),
+            Binary(Mod, x, y) => x.eval() % y.eval(),
             Binary(Pow, x, y) => x.eval().powf(y.eval()),
             Unary(_, x) => x.eval(),
         }
@@ -104,6 +106,10 @@ mod recursive_descent_parse {
                     Ok((_, Slash)) => {
                         input.next();
                         expr = Binary(Div, Box::new(expr), Box::new(parse_factor(input)?))
+                    }
+                    Ok((_, Percent)) => {
+                        input.next();
+                        expr = Binary(Mod, Box::new(expr), Box::new(parse_factor(input)?))
                     }
                     _ => return Ok(expr),
                 },
@@ -169,6 +175,14 @@ pub mod test {
         assert_eq!(15.0, eval("3 * 5").unwrap());
     }
     #[test]
+    pub fn test_mod() {
+        assert_eq!(1.0, eval("1 % 2").unwrap());
+        assert_eq!(0.0, eval("4 % 2").unwrap());
+        assert_eq!(2.0, eval("8 % 3").unwrap());
+        assert_eq!(4.0, eval("11 % 7").unwrap());
+        assert_eq!(2.0, eval("8 % 3").unwrap());
+    }
+    #[test]
     pub fn test_add() {
         assert_eq!(9.0, eval("2 + 7").unwrap());
     }
@@ -221,6 +235,11 @@ pub mod test {
         assert_eq!(37.0, eval("6^2+1").unwrap());
         assert_eq!(200.0, eval("2*10^2").unwrap());
         assert_eq!(2.0, eval("2^2/2").unwrap());
+    }
+    #[test]
+    pub fn test_left_associative() {
+        assert_eq!(1.0, eval("5 * 2 % 3").unwrap());
+        assert_eq!(9.0, eval("6 / 2 * 3").unwrap())
     }
 
     #[test]

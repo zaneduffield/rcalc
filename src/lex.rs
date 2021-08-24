@@ -10,6 +10,7 @@ pub enum Token {
     Caret,
     Slash,
     Star,
+    Percent,
     Number(f64),
     End,
 }
@@ -64,6 +65,7 @@ fn next_token(iter: &mut Peekable<Enumerate<impl Iterator<Item = char>>>) -> Lex
                 '-' => Dash,
                 '*' => Star,
                 '/' => Slash,
+                '%' => Percent,
                 '^' => Caret,
                 _ => return read_num(iter),
             };

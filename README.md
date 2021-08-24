@@ -3,7 +3,7 @@
 A simple command-line calculator implemented in Rust
 ```
 Welcome to rcalc!
-You can evaluate math expressions using + - * / ^ ()
+You can evaluate math expressions using + - * / % ^ ()
 
 >>> 1 + 5*3^2
 46
@@ -34,7 +34,7 @@ The parser is implemented using a top-down recursive descent algorithm recognisi
 grammar (ignoring whitespace)
 ```
 E -> T | T + E | T - E
-T -> F | F * T | F / T
+T -> F | F * T | F / T | F % T
 F -> P | P ^ F
 P -> d | (E) | -F
 d -> \d+(\.\d+)?
