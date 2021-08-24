@@ -30,7 +30,8 @@ with nice error reporting
 
 <br/>
 
-The parser is implemented using a recursive descent algorithm based on the following grammar
+The parser is implemented using a top-down recursive descent algorithm recognising following 
+grammar (ignoring whitespace)
 ```
 E -> T | T + E | T - E
 T -> F | F * T | F / T
