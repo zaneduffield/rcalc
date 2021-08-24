@@ -1,4 +1,4 @@
-use ansi_colors::*;
+use colored::Colorize;
 use rustyline::error::ReadlineError::{Eof, Interrupted};
 use rustyline::Editor;
 
@@ -6,43 +6,50 @@ mod lex;
 mod parse;
 
 pub fn run() {
-    let mut coloured_prompt = ColouredStr::new(">>> ");
-    let mut overflow_prompt = ColouredStr::new("... ");
-
-    coloured_prompt.yellow();
-    overflow_prompt.yellow();
-    let overflow_prompt = overflow_prompt.coloured_string;
+    let prompt = ">>> ".yellow().to_string();
+    let overflow = "... ".yellow().to_string();
 
     let mut rl = Editor::<()>::new();
     loop {
-        let mut prompt = &coloured_prompt.coloured_string;
-        let mut input = String::new();
-        loop {
-            match rl.readline(prompt) {
-                Err(Interrupted) | Err(Eof) => return,
-                Err(e) => panic!("Error: {:?}", e),
-                Ok(line) => {
-                    input.push_str(&line);
-                    if input.is_empty() {
+        if let State::Stop = process_line(&mut rl, &prompt, &overflow) {
+            break;
+        }
+    }
+}
+
+enum State {
+    Continue,
+    Stop,
+}
+
+fn process_line(rl: &mut Editor<()>, start_prompt: &str, overflow: &str) -> State {
+    let mut input = String::new();
+    let mut prompt = start_prompt;
+    loop {
+        match rl.readline(prompt) {
+            Err(Interrupted) | Err(Eof) => return State::Stop,
+            Err(e) => panic!("Error: {:?}", e),
+            Ok(line) => {
+                input.push_str(&line);
+                if input.is_empty() {
+                    break;
+                }
+                match parse::eval(&input) {
+                    Ok(val) => {
+                        println!("{}", val);
                         break;
                     }
-                    match parse::eval(&input) {
-                        Ok(val) => {
-                            rl.add_history_entry(input);
-                            println!("{}", val);
-                            break;
-                        }
-                        Err(parse::CalcErr::Lex(e)) => {
-                            print_error_message(&input, e);
-                            rl.add_history_entry(input);
-                            break;
-                        }
-                        Err(parse::CalcErr::Incomplete) => prompt = &overflow_prompt,
-                    };
-                }
+                    Err(parse::CalcErr::Lex(e)) => {
+                        print_error_message(&input, e);
+                        break;
+                    }
+                    Err(parse::CalcErr::Incomplete) => prompt = overflow,
+                };
             }
         }
     }
+    rl.add_history_entry(input);
+    State::Continue
 }
 
 fn print_error_message(input: &str, e: lex::LexErr) {
@@ -51,7 +58,5 @@ fn print_error_message(input: &str, e: lex::LexErr) {
 
     let (pos, msg) = e;
     let x = format!("{}^ ", " ".repeat(pos + error_indent));
-    let mut pointer = ColouredStr::new(&x);
-    pointer.red();
-    println!("{}", pointer.coloured_string + msg);
+    println!("{}{}", x.red(), msg);
 }
