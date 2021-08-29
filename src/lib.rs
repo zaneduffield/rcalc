@@ -54,9 +54,9 @@ fn process_line(rl: &mut Editor<()>, start_prompt: &str, overflow: &str) -> Stat
 
 fn print_error_message(input: &str, e: lex::LexErr) {
     let error_indent = 2;
-    println!("\n{}", " ".repeat(error_indent) + input);
+    eprintln!("\n{}", " ".repeat(error_indent) + input);
 
     let (pos, msg) = e;
     let x = format!("{}^ ", " ".repeat(pos + error_indent));
-    println!("{}{}", x.red(), msg);
+    eprintln!("{}{}", x.bright_red(), msg);
 }
