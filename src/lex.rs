@@ -12,7 +12,6 @@ pub enum Token {
     Star,
     Percent,
     Number(f64),
-    End,
 }
 
 pub const UNKNOWN_SYMBOL: &str = "unknown symbol";
@@ -48,12 +47,10 @@ fn read_num(iter: &mut Peekable<Enumerate<impl Iterator<Item = char>>>) -> LexRe
     }
 }
 
-fn next_token(iter: &mut Peekable<Enumerate<impl Iterator<Item = char>>>) -> LexResult {
+fn next_token(iter: &mut Peekable<Enumerate<impl Iterator<Item = char>>>) -> Option<LexResult> {
     use Token::*;
 
-    let mut pos = 0;
-    while let Some((i, c)) = iter.peek() {
-        pos = *i;
+    while let Some((_, c)) = iter.peek() {
         if c.is_whitespace() {
             iter.next();
             continue;
@@ -67,13 +64,13 @@ fn next_token(iter: &mut Peekable<Enumerate<impl Iterator<Item = char>>>) -> Lex
                 '/' => Slash,
                 '%' => Percent,
                 '^' => Caret,
-                _ => return read_num(iter),
+                _ => return Some(read_num(iter)),
             };
-            iter.next();
-            return Ok((pos, token));
+            let (i, _) = iter.next()?;
+            return Some(Ok((i, token)));
         }
     }
-    Ok((pos, End))
+    None
 }
 
 pub struct Lexer<'a> {
@@ -91,9 +88,6 @@ impl<'a> Lexer<'a> {
 impl<'a> Iterator for Lexer<'a> {
     type Item = LexResult;
     fn next(&mut self) -> Option<Self::Item> {
-        match next_token(&mut self.chars) {
-            Ok((_, Token::End)) => None,
-            x => Some(x),
-        }
+        return next_token(&mut self.chars);
     }
 }
