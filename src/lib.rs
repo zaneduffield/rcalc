@@ -17,6 +17,14 @@ pub fn run() {
     }
 }
 
+pub fn compute(input: &str) {
+    match parse::eval(input) {
+        Ok(val) => println!("{}", val),
+        Err(parse::CalcErr::Lex(e)) => print_error_message(input, e),
+        Err(parse::CalcErr::Incomplete) => eprint!("Incomplete expression: '{}'", input),
+    }
+}
+
 enum State {
     Continue,
     Stop,
